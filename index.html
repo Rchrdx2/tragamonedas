@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 Tragamonedas Modular</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Cabecera del juego -->
+        <header class="game-header">
+            <h1>🎰 TRAGAMONEDAS</h1>
+            <p>Juego desarrollado con arquitectura modular</p>
+        </header>
+
+        <!-- Panel principal del juego -->
+        <main class="game-main">
+            <!-- Pantalla de información -->
+            <div class="info-panel">
+                <div class="credits-display">
+                    <span class="label">Créditos:</span>
+                    <span class="credits-value" id="credits">1000</span>
+                </div>
+                <div class="bet-display">
+                    <span class="label">Apuesta:</span>
+                    <span class="bet-value" id="bet">50</span>
+                </div>
+            </div>
+
+            <!-- Máquina tragamonedas -->
+            <div class="slot-machine">
+                <div class="slot-reels">
+                    <div class="reel" id="reel-0">
+                        <div class="reel-symbols">
+                            <div class="symbol">🍒</div>
+                            <div class="symbol">🔔</div>
+                            <div class="symbol">🍋</div>
+                            <div class="symbol">⭐</div>
+                            <div class="symbol">💎</div>
+                        </div>
+                    </div>
+                    <div class="reel" id="reel-1">
+                        <div class="reel-symbols">
+                            <div class="symbol">🍒</div>
+                            <div class="symbol">🔔</div>
+                            <div class="symbol">🍋</div>
+                            <div class="symbol">⭐</div>
+                            <div class="symbol">💎</div>
+                        </div>
+                    </div>
+                    <div class="reel" id="reel-2">
+                        <div class="reel-symbols">
+                            <div class="symbol">🍒</div>
+                            <div class="symbol">🔔</div>
+                            <div class="symbol">🍋</div>
+                            <div class="symbol">⭐</div>
+                            <div class="symbol">💎</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Línea de pago -->
+                <div class="payline"></div>
+            </div>
+
+            <!-- Panel de control -->
+            <div class="control-panel">
+                <div class="bet-controls">
+                    <button class="btn btn--secondary" id="bet-decrease">-</button>
+                    <span class="bet-label">Apuesta</span>
+                    <button class="btn btn--secondary" id="bet-increase">+</button>
+                </div>
+                
+                <button class="btn btn--primary spin-btn" id="spin-button">
+                    <span class="spin-text">GIRAR</span>
+                </button>
+                
+                <div class="game-actions">
+                    <button class="btn btn--outline" id="reset-game">Reiniciar</button>
+                </div>
+            </div>
+
+            <!-- Mensajes del juego -->
+            <div class="message-panel" id="message-panel">
+                <div class="message" id="game-message">¡Buena suerte!</div>
+            </div>
+        </main>
+
+        <!-- Tabla de pagos -->
+        <aside class="payout-table">
+            <h3>Tabla de Pagos</h3>
+            <div class="payout-row">
+                <span class="payout-symbols">🍒 🍒 🍒</span>
+                <span class="payout-multiplier">x2</span>
+            </div>
+            <div class="payout-row">
+                <span class="payout-symbols">🔔 🔔 🔔</span>
+                <span class="payout-multiplier">x3</span>
+            </div>
+            <div class="payout-row">
+                <span class="payout-symbols">🍋 🍋 🍋</span>
+                <span class="payout-multiplier">x4</span>
+            </div>
+            <div class="payout-row">
+                <span class="payout-symbols">⭐ ⭐ ⭐</span>
+                <span class="payout-multiplier">x7</span>
+            </div>
+            <div class="payout-row">
+                <span class="payout-symbols">💎 💎 💎</span>
+                <span class="payout-multiplier">x10</span>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Cargamos la lógica del juego -->
+    <script src="app.js"></script>
+</body>
+</html>
