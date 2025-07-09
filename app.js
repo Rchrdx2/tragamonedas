@@ -169,15 +169,6 @@ class SlotEngine {
     return this.lastResult;
   }
 
-  resetGame() {
-    this.credits = GameConfig.game.initialCredits;
-    this.currentBet = GameConfig.game.defaultBet;
-    this.isSpinning = false;
-    this.lastResult = null;
-    this.totalWins = 0;
-    this.totalSpins = 0;
-  }
-
   getStats() {
     return {
       credits: this.credits,
@@ -203,7 +194,6 @@ class SlotUI {
       spinButton: document.getElementById("spin-button"),
       betDecrease: document.getElementById("bet-decrease"),
       betIncrease: document.getElementById("bet-increase"),
-      resetButton: document.getElementById("reset-game"),
       message: document.getElementById("game-message"),
       messagePanel: document.getElementById("message-panel"),
       reels: [
@@ -284,18 +274,6 @@ class SlotUI {
       slotMachine.classList.remove("winning");
     }, 3000);
   }
-
-  resetVisuals() {
-    this.elements.reels.forEach((reel, index) => {
-      this.updateReelSymbol(index, GameConfig.symbols[0]);
-    });
-    this.elements.reels.forEach((reel) => {
-      reel.classList.remove("spinning");
-    });
-    document.querySelector(".slot-machine").classList.remove("winning");
-    this.elements.message.className = "message";
-    this.showMessage(GameConfig.messages.welcome);
-  }
 }
 
 // ==========================================
@@ -318,9 +296,6 @@ class GameController {
     });
     this.ui.elements.betIncrease.addEventListener("click", () => {
       this.handleBetChange(1);
-    });
-    this.ui.elements.resetButton.addEventListener("click", () => {
-      this.handleReset();
     });
     document.addEventListener("keydown", (e) => {
       if (e.code === "Space" && !this.engine.isSpinning) {
@@ -374,12 +349,6 @@ class GameController {
     if (this.engine.setBet(newBet)) {
       this.updateUI();
     }
-  }
-
-  handleReset() {
-    this.engine.resetGame();
-    this.ui.resetVisuals();
-    this.updateUI();
   }
 
   updateUI() {
