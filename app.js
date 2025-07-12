@@ -521,11 +521,8 @@ class SlotUI {
 
     setTimeout(() => {
       this.elements.spinButton.querySelector(".spin-text").textContent = "GIRAR";
-      this.ui.updateSpinButton(
-        this.engine.getStats().credits >= this.engine.getStats().currentBet &&
-          !this.engine.isSpinning &&
-          this.engine.getStats().sessionActive
-      );
+      // Re-enable spin button after animation
+      this.elements.spinButton.disabled = false;
     }, GameConfig.game.spinDuration);
   }
 

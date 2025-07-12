@@ -1100,6 +1100,12 @@ body {
   font-weight: var(--font-weight-bold);
 }
 
+/* Ocultar contador de tiradas y barra de progreso para el usuario */
+.spins-display,
+.progress-container {
+  display: none !important;
+}
+
 /* Animaciones mejoradas */
 @keyframes pulse {
   0%,
