@@ -496,8 +496,10 @@ class SlotUI {
 
   updateReelSymbol(reelIndex, symbol) {
     const reel = this.elements.reels[reelIndex];
-    const symbolElement = reel.querySelector(".symbol");
-    symbolElement.textContent = symbol;
+    const symbolContainer = reel.querySelector(".reel-symbols");
+    if (symbolContainer) {
+      symbolContainer.innerHTML = `<div class="symbol">${symbol}</div>`;
+    }
   }
 
   startSpinAnimation() {
@@ -510,17 +512,21 @@ class SlotUI {
   }
 
   stopSpinAnimation(combination) {
-    setTimeout(() => {
-      this.elements.reels.forEach((reel, index) => {
+    this.elements.reels.forEach((reel, index) => {
+      setTimeout(() => {
         reel.classList.remove("spinning");
         this.updateReelSymbol(index, combination[index]);
-      });
-    }, GameConfig.game.spinDuration);
+      }, index * 300); // Stagger the stop
+    });
+
     setTimeout(() => {
-      this.elements.spinButton.querySelector(".spin-text").textContent =
-        "GIRAR";
-      this.elements.spinButton.disabled = false;
-    }, GameConfig.game.spinDuration + 500);
+      this.elements.spinButton.querySelector(".spin-text").textContent = "GIRAR";
+      this.ui.updateSpinButton(
+        this.engine.getStats().credits >= this.engine.getStats().currentBet &&
+          !this.engine.isSpinning &&
+          this.engine.getStats().sessionActive
+      );
+    }, GameConfig.game.spinDuration);
   }
 
   showMessage(text, type = "default") {
