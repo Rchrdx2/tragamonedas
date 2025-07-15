@@ -39,6 +39,10 @@ const GameConfig = {
     jackpot: "¡JACKPOT! ¡Ganaste ${amount} pesos!",
     noCredits: "Te quedaste sin créditos. ¡Reinicia el juego!",
     insufficientFunds: "Créditos insuficientes para esta apuesta",
+    gameComplete: "¡FELICITACIONES! Has alcanzado 100,000 pesos. ¡Eres un maestro del casino!",
+  },
+  limits: {
+    maxCredits: 100000,
   },
 };
 
@@ -53,6 +57,7 @@ class SlotEngine {
     this.lastResult = null;
     this.totalWins = 0;
     this.totalSpins = 0;
+    this.gameBlocked = false;
   }
 
   // Probabilidades dinámicas amortiguadas según saldo
@@ -181,7 +186,7 @@ class SlotEngine {
   }
 
   executeSpin() {
-    if (this.isSpinning || !this.isValidBet(this.currentBet)) {
+    if (this.isSpinning || !this.isValidBet(this.currentBet) || this.gameBlocked) {
       return null;
     }
     this.isSpinning = true;
@@ -193,6 +198,12 @@ class SlotEngine {
       this.credits += winnings;
       this.totalWins++;
     }
+
+    // Verificar si se alcanzó el límite de créditos
+    if (this.credits >= GameConfig.limits.maxCredits) {
+      this.gameBlocked = true;
+    }
+
     this.lastResult = {
       combination,
       winnings,
@@ -200,6 +211,7 @@ class SlotEngine {
       creditsAfter: this.credits,
       isWin: winnings > 0,
       isJackpot: winnings >= this.currentBet * 7,
+      gameComplete: this.gameBlocked,
     };
     this.isSpinning = false;
     return this.lastResult;
@@ -310,6 +322,41 @@ class SlotUI {
       slotMachine.classList.remove("winning");
     }, 3000);
   }
+
+  showGameCompleteModal() {
+    // Crear el modal
+    const modal = document.createElement("div");
+    modal.className = "game-complete-modal";
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>🎉 ¡FELICITACIONES! 🎉</h2>
+        </div>
+        <div class="modal-body">
+          <p>Has alcanzado <strong>100,000 pesos</strong></p>
+          <p>¡Eres un maestro del casino!</p>
+          <div class="trophy">🏆</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn--primary restart-btn">Jugar de Nuevo</button>
+        </div>
+      </div>
+    `;
+
+    // Agregar al DOM
+    document.body.appendChild(modal);
+
+    // Agregar evento al botón
+    const restartBtn = modal.querySelector(".restart-btn");
+    restartBtn.addEventListener("click", () => {
+      location.reload(); // Recargar la página
+    });
+
+    // Mostrar modal con animación
+    setTimeout(() => {
+      modal.classList.add("show");
+    }, 100);
+  }
 }
 
 // ==========================================
@@ -344,6 +391,7 @@ class GameController {
   handleSpin() {
     if (
       this.engine.isSpinning ||
+      this.engine.gameBlocked ||
       !this.engine.isValidBet(this.engine.currentBet)
     ) {
       if (this.engine.credits < this.engine.currentBet) {
@@ -363,6 +411,15 @@ class GameController {
 
   processSpinResult(result) {
     this.updateUI();
+    
+    // Verificar si el juego se completó (llegó a 100k)
+    if (result.gameComplete) {
+      setTimeout(() => {
+        this.ui.showGameCompleteModal();
+      }, 1000);
+      return;
+    }
+
     if (result.isWin) {
       const message = result.isJackpot
         ? GameConfig.messages.jackpot.replace("${amount}", result.winnings)
@@ -393,8 +450,14 @@ class GameController {
     this.ui.updateBet(stats.currentBet);
     this.ui.updateBetButtons(stats.currentBet, stats.credits);
     this.ui.updateSpinButton(
-      stats.credits >= stats.currentBet && !this.engine.isSpinning,
+      stats.credits >= stats.currentBet && !this.engine.isSpinning && !this.engine.gameBlocked,
     );
+    
+    // Deshabilitar botones de apuesta si el juego está bloqueado
+    if (this.engine.gameBlocked) {
+      this.ui.elements.betDecrease.disabled = true;
+      this.ui.elements.betIncrease.disabled = true;
+    }
   }
 }
 
