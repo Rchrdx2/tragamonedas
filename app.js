@@ -1,37 +1,98 @@
+/**
+ * 🎰 JUEGO DE TRAGAMONEDAS - DOCUMENTACIÓN COMPLETA
+ * =====================================================
+ * 
+ * Este archivo contiene la lógica completa del juego de tragamonedas
+ * desarrollado en JavaScript ES6 con un sistema de probabilidades dinámicas
+ * y balance de juego avanzado.
+ * 
+ * Arquitectura: Patrón MVC (Modelo-Vista-Controlador)
+ * - SlotEngine: Modelo (lógica del juego)
+ * - SlotUI: Vista (interfaz de usuario)
+ * - GameController: Controlador (coordinación)
+ * 
+ * Características principales:
+ * - Sistema de moneda: Pesos colombianos
+ * - Probabilidades dinámicas según saldo
+ * - Control de victorias consecutivas
+ * - Protección contra pérdidas totales
+ * - Progresión hacia objetivo de 100,000 pesos
+ * 
+ * @author Equipo de Desarrollo
+ * @version 1.0.0
+ * @since 2025
+ */
+
 // ==========================================
 // CONFIGURACIÓN CENTRALIZADA
 // ==========================================
+
+/**
+ * Configuración centralizada del juego de tragamonedas.
+ * Contiene todos los parámetros ajustables del juego para facilitar
+ * el mantenimiento y la personalización.
+ * 
+ * @constant {Object} GameConfig
+ * @property {string[]} symbols - Array de símbolos del juego (emojis)
+ * @property {Object} payouts - Multiplicadores de premio por combinación
+ * @property {Object} probabilities - Probabilidades base de cada símbolo
+ * @property {Object} game - Configuración general del juego
+ * @property {Object} messages - Mensajes localizados en español
+ * @property {Object} limits - Límites y restricciones del juego
+ */
 const GameConfig = {
-  symbols: ["🍒", "🔔", "🍋", "⭐", "💎"],
+  symbols: ["🍒", "🔔", "🍋", "⭐", "💎"], // Símbolos del juego ordenados por frecuencia
+  
+  /**
+   * Sistema de pagos del juego
+   * - Premios principales: 3 símbolos iguales
+   * - Premios intermedios: 2 símbolos iguales (clave con símbolo duplicado)
+   */
   payouts: {
     // Premios principales (tres iguales)
-    "🍒": 2,
-    "🔔": 3,
-    "🍋": 4,
-    "⭐": 7,
-    "💎": 10,
+    "🍒": 2,    // Cereza: más común, menor premio
+    "🔔": 3,    // Campana: común, premio bajo
+    "🍋": 4,    // Limón: medio, premio medio
+    "⭐": 7,    // Estrella: raro, premio alto
+    "💎": 10,   // Diamante: muy raro, premio máximo
+    
     // Premios intermedios (dos iguales)
-    "🍒🍒": 1.2,
-    "🔔🔔": 1.5,
-    "🍋🍋": 2,
-    "⭐⭐": 3,
-    "💎💎": 5,
+    "🍒🍒": 1.2,  // Dos cerezas
+    "🔔🔔": 1.5,  // Dos campanas
+    "🍋🍋": 2,    // Dos limones
+    "⭐⭐": 3,    // Dos estrellas
+    "💎💎": 5,    // Dos diamantes
   },
+  
+  /**
+   * Probabilidades base de aparición de cada símbolo
+   * Suma total = 1.0 (100%)
+   * Ordenadas de más común a más raro
+   */
   probabilities: {
-    "🍒": 0.40,
-    "🔔": 0.30,
-    "🍋": 0.20,
-    "⭐": 0.08,
-    "💎": 0.02,
+    "🍒": 0.40,  // 40% - Muy común
+    "🔔": 0.30,  // 30% - Común
+    "🍋": 0.20,  // 20% - Medio
+    "⭐": 0.08,  // 8% - Raro
+    "💎": 0.02,  // 2% - Muy raro
   },
+  
+  /**
+   * Configuración general del juego
+   */
   game: {
-    initialCredits: 50000,
-    minBet: 1000,
-    maxBet: 5000,
-    defaultBet: 1000,
-    reels: 3,
-    spinDuration: 2000,
+    initialCredits: 50000,  // Créditos iniciales en pesos colombianos
+    minBet: 1000,          // Apuesta mínima por giro
+    maxBet: 5000,          // Apuesta máxima por giro
+    defaultBet: 1000,      // Apuesta inicial por defecto
+    reels: 3,              // Número de carretes
+    spinDuration: 2000,    // Duración de la animación de giro (ms)
   },
+  
+  /**
+   * Mensajes del sistema localizados en español
+   * Usa ${amount} como placeholder para cantidades
+   */
   messages: {
     welcome: "¡Buena suerte!",
     win: "¡Ganaste ${amount} pesos!",
@@ -41,28 +102,71 @@ const GameConfig = {
     insufficientFunds: "Créditos insuficientes para esta apuesta",
     gameComplete: "¡FELICITACIONES! Has alcanzado 100,000 pesos. ¡Eres un maestro del casino!",
   },
+  
+  /**
+   * Límites y restricciones del juego
+   */
   limits: {
-    maxCredits: 100000,
+    maxCredits: 100000,  // Objetivo del juego - al alcanzarlo se completa
   },
 };
 
 // ==========================================
 // MOTOR DEL JUEGO (LÓGICA PURA)
 // ==========================================
+
+/**
+ * Clase principal que maneja toda la lógica del juego de tragamonedas.
+ * Implementa un sistema de probabilidades dinámicas, control de victorias
+ * consecutivas y balance de juego avanzado.
+ * 
+ * @class SlotEngine
+ */
 class SlotEngine {
+  /**
+   * Constructor del motor del juego.
+   * Inicializa todas las propiedades del juego con valores por defecto.
+   */
   constructor() {
+    /** @type {number} Créditos actuales del jugador en pesos colombianos */
     this.credits = GameConfig.game.initialCredits;
+    
+    /** @type {number} Apuesta actual por giro */
     this.currentBet = GameConfig.game.defaultBet;
+    
+    /** @type {boolean} Indica si los carretes están girando */
     this.isSpinning = false;
+    
+    /** @type {Object|null} Resultado del último giro */
     this.lastResult = null;
+    
+    /** @type {number} Número total de victorias */
     this.totalWins = 0;
+    
+    /** @type {number} Número total de giros realizados */
     this.totalSpins = 0;
+    
+    /** @type {boolean} Indica si el juego está bloqueado (al llegar a 100k) */
     this.gameBlocked = false;
+    
+    /** @type {number} Número de victorias consecutivas actuales */
     this.consecutiveWins = 0;
-    this.maxConsecutiveWins = 4; // Máximo 4-5 victorias seguidas
+    
+    /** @type {number} Límite máximo de victorias consecutivas (4-5) */
+    this.maxConsecutiveWins = 4;
   }
 
-  // Probabilidades dinámicas amortiguadas según saldo
+  /**
+   * Calcula las probabilidades dinámicas de aparición de símbolos
+   * basadas en el estado actual del juego (saldo, victorias consecutivas).
+   * 
+   * Implementa tres sistemas de balance:
+   * 1. Protección de saldo bajo (< 40,000 pesos)
+   * 2. Control de victorias consecutivas (límite 4-5)
+   * 3. Escalado de dificultad para saldos altos (> 97,000 pesos)
+   * 
+   * @returns {Object} Objeto con probabilidades normalizadas por símbolo
+   */
   getDynamicProbabilities() {
     const base = { ...GameConfig.probabilities };
     let factor = 1;
@@ -106,7 +210,15 @@ class SlotEngine {
     return base;
   }
 
-  // Genera símbolos para cada carrete, con lógica especial para saldo < 40000
+  /**
+   * Genera la combinación de símbolos para los carretes del juego.
+   * Implementa lógica especial para diferentes estados del juego:
+   * - Control de victorias consecutivas
+   * - Protección de saldo bajo
+   * - Generación normal basada en probabilidades
+   * 
+   * @returns {string[]} Array de 3 símbolos para los carretes
+   */
   spinReels() {
     // Control de victorias consecutivas: después de 4-5 victorias, forzar pérdida
     if (this.consecutiveWins >= this.maxConsecutiveWins) {
@@ -151,6 +263,14 @@ class SlotEngine {
     return result;
   }
 
+  /**
+   * Calcula las ganancias basadas en la combinación de símbolos obtenida.
+   * Implementa el sistema de pagos tanto para premios principales (3 iguales)
+   * como para premios intermedios (2 iguales).
+   * 
+   * @param {string[]} combination - Array de 3 símbolos de la combinación
+   * @returns {number} Cantidad de pesos ganados (0 si no hay premio)
+   */
   calculateWinnings(combination) {
     const firstSymbol = combination[0];
     const secondSymbol = combination[1];
@@ -194,6 +314,12 @@ class SlotEngine {
     return 0;
   }
 
+  /**
+   * Valida si una cantidad de apuesta es válida según las reglas del juego.
+   * 
+   * @param {number} betAmount - Cantidad a apostar
+   * @returns {boolean} True si la apuesta es válida, false en caso contrario
+   */
   isValidBet(betAmount) {
     return (
       betAmount >= GameConfig.game.minBet &&
@@ -202,6 +328,12 @@ class SlotEngine {
     );
   }
 
+  /**
+   * Establece una nueva cantidad de apuesta si es válida.
+   * 
+   * @param {number} betAmount - Nueva cantidad a apostar
+   * @returns {boolean} True si se estableció correctamente, false en caso contrario
+   */
   setBet(betAmount) {
     if (this.isValidBet(betAmount)) {
       this.currentBet = betAmount;
@@ -210,6 +342,20 @@ class SlotEngine {
     return false;
   }
 
+  /**
+   * Ejecuta un giro completo del juego incluyendo todas las validaciones,
+   * cálculos y actualizaciones de estado.
+   * 
+   * Proceso:
+   * 1. Validaciones (saldo, apuesta, estado)
+   * 2. Descuenta la apuesta
+   * 3. Genera combinación de símbolos
+   * 4. Calcula ganancias
+   * 5. Actualiza estadísticas y estado
+   * 6. Verifica condiciones de fin de juego
+   * 
+   * @returns {Object|null} Objeto con el resultado del giro o null si no se puede ejecutar
+   */
   executeSpin() {
     if (this.isSpinning || !this.isValidBet(this.currentBet) || this.gameBlocked) {
       return null;
@@ -253,6 +399,16 @@ class SlotEngine {
     return this.lastResult;
   }
 
+  /**
+   * Obtiene las estadísticas actuales del juego.
+   * 
+   * @returns {Object} Objeto con estadísticas del jugador
+   * @property {number} credits - Créditos actuales
+   * @property {number} currentBet - Apuesta actual
+   * @property {number} totalSpins - Total de giros realizados
+   * @property {number} totalWins - Total de victorias
+   * @property {string} winRate - Porcentaje de victorias (con 1 decimal)
+   */
   getStats() {
     return {
       credits: this.credits,
@@ -270,8 +426,20 @@ class SlotEngine {
 // ==========================================
 // INTERFAZ DE USUARIO (PRESENTACIÓN)
 // ==========================================
+
+/**
+ * Clase responsable de manejar toda la interfaz de usuario del juego.
+ * Gestiona la actualización visual, animaciones y efectos especiales.
+ * 
+ * @class SlotUI
+ */
 class SlotUI {
+  /**
+   * Constructor de la interfaz de usuario.
+   * Obtiene referencias a todos los elementos DOM necesarios.
+   */
   constructor() {
+    /** @type {Object} Referencias a elementos DOM del juego */
     this.elements = {
       credits: document.getElementById("credits"),
       bet: document.getElementById("bet"),
