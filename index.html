@@ -1,37 +1,79 @@
 <!DOCTYPE html>
+<!--
+🎰 TRAGAMONEDAS - ESTRUCTURA HTML
+================================
+
+Este archivo contiene la estructura HTML completa del juego de tragamonedas.
+Utiliza HTML5 semántico con elementos estructurados para mantener una
+arquitectura clara y accesible.
+
+Estructura principal:
+- Header: Título del juego
+- Main: Área principal de juego con info panel, máquina y controles
+- Aside: Tabla de pagos lateral
+- Scripts: Lógica del juego
+
+Características:
+- Diseño responsive y accesible
+- Elementos semánticos HTML5
+- IDs específicos para interacción con JavaScript
+- Estructura modular y mantenible
+
+@author Equipo de Desarrollo
+@version 1.0.0
+@since 2025
+-->
 <html lang="es">
 <head>
+    <!-- Configuración del documento -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎰 Tragamonedas</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Contenedor principal que engloba toda la aplicación -->
     <div class="container">
-        <!-- Cabecera del juego -->
+        
+        <!-- ====================================== -->
+        <!-- CABECERA DEL JUEGO                    -->
+        <!-- ====================================== -->
         <header class="game-header">
             <h1>🎰 TRAGAMONEDAS</h1>
         </header>
 
-        <!-- Panel principal del juego -->
+        <!-- ====================================== -->
+        <!-- ÁREA PRINCIPAL DEL JUEGO              -->
+        <!-- ====================================== -->
         <main class="game-main">
-            <!-- Pantalla de información -->
+            
+            <!-- Panel de información del jugador -->
+            <!-- Muestra créditos actuales y apuesta configurada -->
             <div class="info-panel">
                 <div class="credits-display">
                     <span class="label">Créditos:</span>
+                    <!-- ID: credits - Actualizado dinámicamente por JavaScript -->
                     <span class="credits-value" id="credits">50000</span>
                 </div>
                 <div class="bet-display">
                     <span class="label">Apuesta:</span>
+                    <!-- ID: bet - Muestra la apuesta actual seleccionada -->
                     <span class="bet-value" id="bet">1000</span>
                 </div>
             </div>
 
-            <!-- Máquina tragamonedas -->
+            <!-- ====================================== -->
+            <!-- MÁQUINA TRAGAMONEDAS                  -->
+            <!-- ====================================== -->
+            <!-- Contiene los 3 carretes con animaciones de giro -->
             <div class="slot-machine">
+                <!-- Contenedor de los 3 carretes -->
                 <div class="slot-reels">
+                    <!-- CARRETE 1 -->
+                    <!-- ID: reel-0 - Primer carrete, controlado por JavaScript -->
                     <div class="reel" id="reel-0">
                         <div class="reel-symbols">
+                            <!-- Símbolos disponibles para mostrar -->
                             <div class="symbol">🍒</div>
                             <div class="symbol">🔔</div>
                             <div class="symbol">🍋</div>
@@ -39,8 +81,12 @@
                             <div class="symbol">💎</div>
                         </div>
                     </div>
+                    
+                    <!-- CARRETE 2 -->
+                    <!-- ID: reel-1 - Segundo carrete, controlado por JavaScript -->
                     <div class="reel" id="reel-1">
                         <div class="reel-symbols">
+                            <!-- Mismos símbolos para consistencia visual -->
                             <div class="symbol">🍒</div>
                             <div class="symbol">🔔</div>
                             <div class="symbol">🍋</div>
@@ -48,8 +94,12 @@
                             <div class="symbol">💎</div>
                         </div>
                     </div>
+                    
+                    <!-- CARRETE 3 -->
+                    <!-- ID: reel-2 - Tercer carrete, controlado por JavaScript -->
                     <div class="reel" id="reel-2">
                         <div class="reel-symbols">
+                            <!-- Símbolos finales para completar la combinación -->
                             <div class="symbol">🍒</div>
                             <div class="symbol">🔔</div>
                             <div class="symbol">🍋</div>
@@ -59,71 +109,113 @@
                     </div>
                 </div>
                 
-                <!-- Línea de pago -->
+                <!-- Línea visual que indica dónde se evalúan las combinaciones -->
                 <div class="payline"></div>
             </div>
 
-            <!-- Panel de control -->
+            <!-- ====================================== -->
+            <!-- PANEL DE CONTROL                      -->
+            <!-- ====================================== -->
+            <!-- Controles para apostar y girar -->
             <div class="control-panel">
+                <!-- Controles de apuesta -->
                 <div class="bet-controls">
+                    <!-- ID: bet-decrease - Reduce la apuesta en 1000 pesos -->
                     <button class="btn btn--secondary" id="bet-decrease">-</button>
                     <span class="bet-label">Apuesta</span>
+                    <!-- ID: bet-increase - Aumenta la apuesta en 1000 pesos -->
                     <button class="btn btn--secondary" id="bet-increase">+</button>
                 </div>
                 
+                <!-- Botón principal para iniciar el giro -->
+                <!-- ID: spin-button - Ejecuta el giro del juego -->
                 <button class="btn btn--primary spin-btn" id="spin-button">
                     <span class="spin-text">GIRAR</span>
                 </button>
             </div>
 
-            <!-- Mensajes del juego -->
+            <!-- ====================================== -->
+            <!-- PANEL DE MENSAJES                     -->
+            <!-- ====================================== -->
+            <!-- Muestra mensajes de estado del juego -->
             <div class="message-panel" id="message-panel">
+                <!-- ID: game-message - Actualizado por JavaScript con resultados -->
                 <div class="message" id="game-message">¡Buena suerte!</div>
             </div>
         </main>
 
-        <!-- Tabla de pagos -->
+        <!-- ====================================== -->
+        <!-- TABLA DE PAGOS LATERAL                -->
+        <!-- ====================================== -->
+        <!-- Información de premios y multiplicadores -->
         <aside class="payout-table">
             <h3>Tabla de Pagos</h3>
+            
+            <!-- ====================================== -->
+            <!-- PREMIOS PRINCIPALES (3 IGUALES)       -->
+            <!-- ====================================== -->
             <h4>Premios Principales (3 iguales)</h4>
+            
+            <!-- Cereza: Premio más común (x2) -->
             <div class="payout-row">
                 <span class="payout-symbols">🍒 🍒 🍒</span>
                 <span class="payout-multiplier">x2</span>
             </div>
+            
+            <!-- Campana: Premio común (x3) -->
             <div class="payout-row">
                 <span class="payout-symbols">🔔 🔔 🔔</span>
                 <span class="payout-multiplier">x3</span>
             </div>
+            
+            <!-- Limón: Premio medio (x4) -->
             <div class="payout-row">
                 <span class="payout-symbols">🍋 🍋 🍋</span>
                 <span class="payout-multiplier">x4</span>
             </div>
+            
+            <!-- Estrella: Premio alto (x7) - Favorecido en sistemas de impulso -->
             <div class="payout-row">
                 <span class="payout-symbols">⭐ ⭐ ⭐</span>
                 <span class="payout-multiplier">x7</span>
             </div>
+            
+            <!-- Diamante: Premio máximo (x10) - Más raro en sistemas de impulso -->
             <div class="payout-row">
                 <span class="payout-symbols">💎 💎 💎</span>
                 <span class="payout-multiplier">x10</span>
             </div>
             
+            <!-- ====================================== -->
+            <!-- PREMIOS INTERMEDIOS (2 IGUALES)       -->
+            <!-- ====================================== -->
             <h4>Premios Intermedios (2 iguales)</h4>
+            
+            <!-- Dos cerezas (x1.2) -->
             <div class="payout-row">
                 <span class="payout-symbols">🍒 🍒</span>
                 <span class="payout-multiplier">x1.2</span>
             </div>
+            
+            <!-- Dos campanas (x1.5) -->
             <div class="payout-row">
                 <span class="payout-symbols">🔔 🔔</span>
                 <span class="payout-multiplier">x1.5</span>
             </div>
+            
+            <!-- Dos limones (x2) -->
             <div class="payout-row">
                 <span class="payout-symbols">🍋 🍋</span>
                 <span class="payout-multiplier">x2</span>
             </div>
+            
+            <!-- Dos estrellas (x3) -->
             <div class="payout-row">
                 <span class="payout-symbols">⭐ ⭐</span>
                 <span class="payout-multiplier">x3</span>
             </div>
+            
+            <!-- Dos diamantes (x5) -->
             <div class="payout-row">
                 <span class="payout-symbols">💎 💎</span>
                 <span class="payout-multiplier">x5</span>
@@ -131,7 +223,22 @@
         </aside>
     </div>
 
-    <!-- Cargamos la lógica del juego -->
+    <!-- ====================================== -->
+    <!-- PIE DE PÁGINA: INFORMACIÓN ADICIONAL  -->
+    <!-- ====================================== -->
+    <!-- Información técnica y de desarrollo -->
+    <footer>
+        <!-- Texto de créditos y información del desarrollador -->
+        <p>Slot Machine Game © 2024 - Desarrollado con tecnologías web modernas</p>
+        <!-- Información técnica del juego -->
+        <p>Sistema de 5 probabilidades dinámicas | Moneda: Pesos Colombianos | Límite máximo: 100,000 COP</p>
+    </footer>
+
+    <!-- ====================================== -->
+    <!-- SCRIPT PRINCIPAL DEL JUEGO             -->
+    <!-- ====================================== -->
+    <!-- Cargamos la lógica completa del juego desde app.js -->
+    <!-- Incluye: 5 sistemas de probabilidades, bonificaciones separadas, límites de crédito -->
     <script src="app.js"></script>
 </body>
 </html>

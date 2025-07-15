@@ -184,11 +184,11 @@ class SlotEngine {
     if (this.totalSpins === this.bigPrizeTurn && !this.bigPrizeAwarded && (this.currentBet === 3000 || this.currentBet === 4000)) {
       // PROBABILIDADES EXTREMAS para gran premio inicial SOLO con apuestas de 3000-4000
       return {
-        "🍒": 0.02,  // Prácticamente eliminado
-        "🔔": 0.02,  // Prácticamente eliminado
-        "🍋": 0.01,  // Prácticamente eliminado
-        "⭐": 0.35,  // ALTÍSIMO (de 0.06 a 0.35)
-        "💎": 0.60,  // GARANTIZADO CASI (de 0.02 a 0.60)
+        "🍒": 0.03,  // Prácticamente eliminado
+        "🔔": 0.03,  // Prácticamente eliminado
+        "🍋": 0.02,  // Prácticamente eliminado
+        "⭐": 0.55,  // ALTÍSIMO (mantenido alto)
+        "💎": 0.37,  // ALTO pero reducido (de 0.60 a 0.37)
       };
     }
 
@@ -199,11 +199,11 @@ class SlotEngine {
       const bonusMultiplier = this.currentBet === 1000 ? 15 : 12; // 15x para 1000, 12x para 2000
       
       return {
-        "🍒": 0.05,  // Muy reducido
-        "🔔": 0.05,  // Muy reducido
-        "🍋": 0.05,  // Muy reducido
-        "⭐": 0.45,  // CASI GARANTIZADO (de 0.06 a 0.45)
-        "💎": 0.40,  // CASI GARANTIZADO (de 0.02 a 0.40)
+        "🍒": 0.08,  // Muy reducido
+        "🔔": 0.08,  // Muy reducido
+        "🍋": 0.09,  // Muy reducido
+        "⭐": 0.50,  // CASI GARANTIZADO (mantenido alto)
+        "💎": 0.25,  // ALTO pero reducido (de 0.40 a 0.25)
       };
     }
 
@@ -263,11 +263,14 @@ class SlotEngine {
       // FORZAR jackpot masivo en la tirada elegida SOLO con apuestas de 3000-4000
       const random = Math.random();
       
-      // 80% probabilidad de triple diamante, 20% triple estrella
-      if (random < 0.8) {
-        return ["💎", "💎", "💎"]; // x10 multiplicador
+      // 50% probabilidad de triple estrella, 30% triple diamante, 20% combinación mixta premium
+      if (random < 0.5) {
+        return ["⭐", "⭐", "⭐"]; // x7 multiplicador (favorecido)
+      } else if (random < 0.8) {
+        return ["💎", "💎", "💎"]; // x10 multiplicador (reducido)
       } else {
-        return ["⭐", "⭐", "⭐"]; // x7 multiplicador
+        // 20% combinación mixta premium
+        return ["⭐", "⭐", "💎"]; // x3 multiplicador
       }
     }
 
@@ -280,12 +283,12 @@ class SlotEngine {
       for (let i = 0; i < GameConfig.game.reels; i++) {
         const random = Math.random();
         
-        // 95% de probabilidad de que salga diamante o estrella
-        if (random < 0.95) {
-          // 50/50 entre diamante y estrella
-          result.push(random < 0.475 ? "💎" : "⭐");
+        // 90% de probabilidad de que salga diamante o estrella (reducido de 95%)
+        if (random < 0.90) {
+          // 65% estrella, 35% diamante (favoreciendo estrellas)
+          result.push(random < 0.585 ? "⭐" : "💎"); // 0.65 * 0.90 = 0.585
         } else {
-          // 5% para otros símbolos
+          // 10% para otros símbolos
           let cumulative = 0;
           for (const [symbol, prob] of Object.entries(probs)) {
             cumulative += prob;
