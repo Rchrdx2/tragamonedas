@@ -68,14 +68,14 @@ const GameConfig = {
    * Probabilidades base de aparición de cada símbolo
    * Suma total = 1.0 (100%)
    * Ordenadas de más común a más raro
-   * AUMENTADAS para mayor frecuencia de victorias
+   * BALANCEADAS para compensar los sistemas de bonificación
    */
   probabilities: {
-    "🍒": 0.45,  // 45% - Muy común (aumentado)
-    "🔔": 0.32,  // 32% - Común (aumentado)
-    "🍋": 0.15,  // 15% - Medio
-    "⭐": 0.06,  // 6% - Raro
-    "💎": 0.02,  // 2% - Muy raro
+    "🍒": 0.50,  // 50% - Muy común (aumentado para compensar)
+    "🔔": 0.35,  // 35% - Común (aumentado para compensar)
+    "🍋": 0.12,  // 12% - Medio (reducido)
+    "⭐": 0.025, // 2.5% - Raro (reducido significativamente)
+    "💎": 0.005, // 0.5% - Muy raro (reducido drásticamente)
   },
   
   /**
@@ -155,17 +155,24 @@ class SlotEngine {
     
     /** @type {number} Límite máximo de victorias consecutivas (5-7) */
     this.maxConsecutiveWins = 5;
+    
+    /** @type {boolean} Indica si el jugador ya recibió su gran premio inicial */
+    this.bigPrizeAwarded = false;
+    
+    /** @type {number} Tirada aleatoria elegida para el gran premio inicial (1, 2 o 3) */
+    this.bigPrizeTurn = Math.floor(Math.random() * 3) + 1;
   }
 
   /**
    * Calcula las probabilidades dinámicas de aparición de símbolos
    * basadas en el estado actual del juego (saldo, victorias consecutivas).
    * 
-   * Implementa cuatro sistemas de balance:
-   * 1. Protección de saldo bajo (< 40,000 pesos)
-   * 2. Control de victorias consecutivas (límite 5-7)
-   * 3. Escalado de dificultad para saldos altos (> 97,000 pesos)
-   * 4. Bonificación de símbolos premium (saldo 47k-56k + apuesta baja)
+   * Implementa cinco sistemas de balance:
+   * 1. Gran premio inicial (una tirada aleatoria entre las primeras 3 con apuestas de 3000-4000)
+   * 2. Protección de saldo bajo (< 40,000 pesos)
+   * 3. Control de victorias consecutivas (límite 5-7)
+   * 4. Escalado de dificultad para saldos altos (> 97,000 pesos)
+   * 5. Bonificación de símbolos premium (saldo 47k-56k + apuesta 1000-2000 pesos)
    * 
    * @returns {Object} Objeto con probabilidades normalizadas por símbolo
    */
@@ -173,8 +180,20 @@ class SlotEngine {
     const base = { ...GameConfig.probabilities };
     let factor = 1;
 
+    // NUEVO SISTEMA: Gran premio inicial garantizado en una tirada aleatoria entre las primeras 3 (solo con apuestas medias)
+    if (this.totalSpins === this.bigPrizeTurn && !this.bigPrizeAwarded && (this.currentBet === 3000 || this.currentBet === 4000)) {
+      // PROBABILIDADES EXTREMAS para gran premio inicial SOLO con apuestas de 3000-4000
+      return {
+        "🍒": 0.02,  // Prácticamente eliminado
+        "🔔": 0.02,  // Prácticamente eliminado
+        "🍋": 0.01,  // Prácticamente eliminado
+        "⭐": 0.35,  // ALTÍSIMO (de 0.06 a 0.35)
+        "💎": 0.60,  // GARANTIZADO CASI (de 0.02 a 0.60)
+      };
+    }
+
     // NUEVO SISTEMA: Bonificación de símbolos premium (💎⭐) en rango específico
-    if (this.credits >= 47000 && this.credits <= 56000 && this.currentBet <= 2000) {
+    if (this.credits >= 47000 && this.credits <= 56000 && (this.currentBet === 1000 || this.currentBet === 2000)) {
       // Aumentar exponencialmente las probabilidades de diamantes y estrellas
       // CASI GARANTIZADO que salgan símbolos premium
       const bonusMultiplier = this.currentBet === 1000 ? 15 : 12; // 15x para 1000, 12x para 2000
@@ -230,6 +249,7 @@ class SlotEngine {
   /**
    * Genera la combinación de símbolos para los carretes del juego.
    * Implementa lógica especial para diferentes estados del juego:
+   * - Gran premio inicial (primeras 3 tiradas)
    * - Bonificación de símbolos premium (rango 47k-56k + apuesta baja)
    * - Control de victorias consecutivas
    * - Protección de saldo bajo
@@ -238,8 +258,21 @@ class SlotEngine {
    * @returns {string[]} Array de 3 símbolos para los carretes
    */
   spinReels() {
-    // NUEVO: Bonificación de símbolos premium para saldo 47k-56k + apuesta baja
-    if (this.credits >= 47000 && this.credits <= 56000 && this.currentBet <= 2000) {
+    // NUEVO: Gran premio inicial garantizado en una tirada aleatoria entre las primeras 3 (solo con apuestas medias)
+    if (this.totalSpins === this.bigPrizeTurn && !this.bigPrizeAwarded && (this.currentBet === 3000 || this.currentBet === 4000)) {
+      // FORZAR jackpot masivo en la tirada elegida SOLO con apuestas de 3000-4000
+      const random = Math.random();
+      
+      // 80% probabilidad de triple diamante, 20% triple estrella
+      if (random < 0.8) {
+        return ["💎", "💎", "💎"]; // x10 multiplicador
+      } else {
+        return ["⭐", "⭐", "⭐"]; // x7 multiplicador
+      }
+    }
+
+    // NUEVO: Bonificación de símbolos premium para saldo 47k-56k + apuesta baja (solo 1000 y 2000)
+    if (this.credits >= 47000 && this.credits <= 56000 && (this.currentBet === 1000 || this.currentBet === 2000)) {
       const probs = this.getDynamicProbabilities();
       const result = [];
       
@@ -414,8 +447,19 @@ class SlotEngine {
     
     if (winnings > 0) {
       this.credits += winnings;
+      
+      // LÍMITE ABSOLUTO: Los créditos nunca pueden superar 100,000
+      if (this.credits > GameConfig.limits.maxCredits) {
+        this.credits = GameConfig.limits.maxCredits;
+      }
+      
       this.totalWins++;
       this.consecutiveWins++; // Incrementar victorias consecutivas
+      
+      // Marcar gran premio como otorgado si fue en la tirada especial elegida
+      if (this.totalSpins === this.bigPrizeTurn && (winnings >= this.currentBet * 7)) {
+        this.bigPrizeAwarded = true;
+      }
       
       // Variar el máximo de victorias consecutivas (5 a 7 aleatoriamente)
       if (this.consecutiveWins === 1) {
@@ -440,6 +484,7 @@ class SlotEngine {
       isJackpot: winnings >= this.currentBet * 7,
       gameComplete: this.gameBlocked,
       consecutiveWins: this.consecutiveWins,
+      bigPrizeAwarded: this.bigPrizeAwarded,
     };
     this.isSpinning = false;
     return this.lastResult;
@@ -504,7 +549,9 @@ class SlotUI {
   }
 
   updateCredits(credits) {
+    // Los créditos ya están limitados internamente a 100k, no necesitamos Math.min
     this.elements.credits.textContent = credits;
+    
     if (credits <= 0) {
       this.elements.credits.style.color = "#e74c3c";
     } else if (credits < 40000) {
