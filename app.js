@@ -58,6 +58,8 @@ class SlotEngine {
     this.totalWins = 0;
     this.totalSpins = 0;
     this.gameBlocked = false;
+    this.consecutiveWins = 0;
+    this.maxConsecutiveWins = 4; // Máximo 4-5 victorias seguidas
   }
 
   // Probabilidades dinámicas amortiguadas según saldo
@@ -65,14 +67,26 @@ class SlotEngine {
     const base = { ...GameConfig.probabilities };
     let factor = 1;
 
-    // Menos de 40000 pesos: imposible perder
-    if (this.credits < 40000) {
+    // Menos de 40000 pesos: imposible perder (excepto si ya ha ganado demasiado seguido)
+    if (this.credits < 40000 && this.consecutiveWins < this.maxConsecutiveWins) {
       return {
         "🍒": 0.35,
         "🔔": 0.30,
         "🍋": 0.20,
         "⭐": 0.10,
         "💎": 0.05,
+      };
+    }
+
+    // Control de victorias consecutivas: después de 4-5 victorias seguidas, forzar pérdida
+    if (this.consecutiveWins >= this.maxConsecutiveWins) {
+      // Probabilidades muy bajas para ganar - casi garantizada pérdida
+      return {
+        "🍒": 0.12,
+        "🔔": 0.12,
+        "🍋": 0.12,
+        "⭐": 0.08,
+        "💎": 0.04,
       };
     }
 
@@ -94,7 +108,17 @@ class SlotEngine {
 
   // Genera símbolos para cada carrete, con lógica especial para saldo < 40000
   spinReels() {
-    if (this.credits < 40000) {
+    // Control de victorias consecutivas: después de 4-5 victorias, forzar pérdida
+    if (this.consecutiveWins >= this.maxConsecutiveWins) {
+      // Generar combinación que garantice pérdida (símbolos diferentes)
+      const symbols = GameConfig.symbols;
+      
+      // Asegurar que no haya 3 iguales ni 2 iguales
+      return [symbols[0], symbols[1], symbols[2]]; // 🍒🔔🍋
+    }
+
+    // Caso especial: menos de 40000 pesos - forzar ganancia (si no ha ganado demasiado seguido)
+    if (this.credits < 40000 && this.consecutiveWins < this.maxConsecutiveWins) {
       // Forzar combinación ganadora (tres iguales)
       const probs = this.getDynamicProbabilities();
       const random = Math.random();
@@ -109,6 +133,7 @@ class SlotEngine {
       }
       return [winner, winner, winner];
     }
+
     // Caso normal: sorteo ponderado por carrete
     const probs = this.getDynamicProbabilities();
     const result = [];
@@ -194,9 +219,19 @@ class SlotEngine {
     this.credits -= this.currentBet;
     const combination = this.spinReels();
     const winnings = this.calculateWinnings(combination);
+    
     if (winnings > 0) {
       this.credits += winnings;
       this.totalWins++;
+      this.consecutiveWins++; // Incrementar victorias consecutivas
+      
+      // Variar el máximo de victorias consecutivas (4 o 5 aleatoriamente)
+      if (this.consecutiveWins === 1) {
+        this.maxConsecutiveWins = Math.random() < 0.5 ? 4 : 5;
+      }
+    } else {
+      this.consecutiveWins = 0; // Resetear contador en caso de pérdida
+      this.maxConsecutiveWins = Math.random() < 0.5 ? 4 : 5; // Nuevo límite aleatorio
     }
 
     // Verificar si se alcanzó el límite de créditos
@@ -212,6 +247,7 @@ class SlotEngine {
       isWin: winnings > 0,
       isJackpot: winnings >= this.currentBet * 7,
       gameComplete: this.gameBlocked,
+      consecutiveWins: this.consecutiveWins,
     };
     this.isSpinning = false;
     return this.lastResult;
