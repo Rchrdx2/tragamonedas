@@ -18,18 +18,18 @@ const GameConfig = {
     "💎": 0.05,
   },
   game: {
-    initialCredits: 20,
-    minBet: 2,
-    maxBet: 5,
-    defaultBet: 2,
+    initialCredits: 50000,
+    minBet: 1000,
+    maxBet: 5000,
+    defaultBet: 1000,
     reels: 3,
     spinDuration: 2000,
   },
   messages: {
     welcome: "¡Buena suerte!",
-    win: "¡Ganaste {amount} créditos!",
+    win: "¡Ganaste ${amount} pesos!",
     lose: "¡Inténtalo de nuevo!",
-    jackpot: "¡JACKPOT! ¡Ganaste {amount} créditos!",
+    jackpot: "¡JACKPOT! ¡Ganaste ${amount} pesos!",
     noCredits: "Te quedaste sin créditos. ¡Reinicia el juego!",
     insufficientFunds: "Créditos insuficientes para esta apuesta",
   },
@@ -53,8 +53,8 @@ class SlotEngine {
     const base = { ...GameConfig.probabilities };
     let factor = 1;
 
-    // Menos de 5 créditos: imposible perder
-    if (this.credits < 5) {
+    // Menos de 5000 pesos: imposible perder
+    if (this.credits < 5000) {
       return {
         "🍒": 0.3,
         "🔔": 0.25,
@@ -64,16 +64,17 @@ class SlotEngine {
       };
     }
 
-    // Transición amortiguada entre 0–15 y 40–50
-    if (this.credits < 15) {
-      // Aumenta gradualmente la probabilidad de ganar cuanto más bajo es el saldo (<15)
-      // Factor va de 1.8 (en 0 $) a 1 (en 15 $)
-      factor = 1.8 - (this.credits / 15) * 0.8;
+    // Transición amortiguada entre 40,000 y 97,000 pesos
+    if (this.credits < 40000) {
+      // Aumenta gradualmente la probabilidad de ganar cuanto más bajo es el saldo (<40,000)
+      // Factor va de 1.8 (en 0 pesos) a 1 (en 40,000 pesos)
+      factor = 1.8 - (this.credits / 40000) * 0.8;
       for (let sym in base) base[sym] *= factor;
-    } else if (this.credits > 40) {
-      // Disminuye gradualmente la probabilidad de ganar cuanto más alto es el saldo (>40)
-      // Factor va de 1 (en 40 $) a 0.3 (en 50 $)
-      factor = 1 - ((this.credits - 40) / 10) * 0.7;
+    } else if (this.credits > 97000) {
+      // Disminuye gradualmente la probabilidad de ganar cuanto más alto es el saldo (>97,000)
+      // Factor va de 1 (en 97,000 pesos) a 0.3 (en 120,000+ pesos)
+      factor = 1 - ((this.credits - 97000) / 23000) * 0.7;
+      if (factor < 0.3) factor = 0.3; // Mínimo factor
       for (let sym in base) base[sym] *= factor;
       // Aumenta la probabilidad de perder (no todos iguales)
       base["🍒"] += (1 - factor) * 0.25;
@@ -84,9 +85,9 @@ class SlotEngine {
     return base;
   }
 
-  // Genera símbolos para cada carrete, con lógica especial para saldo < 5
+  // Genera símbolos para cada carrete, con lógica especial para saldo < 5000
   spinReels() {
-    if (this.credits < 5) {
+    if (this.credits < 5000) {
       // Forzar combinación ganadora (tres iguales)
       const probs = this.getDynamicProbabilities();
       const random = Math.random();
@@ -219,7 +220,7 @@ class SlotUI {
     this.elements.credits.textContent = credits;
     if (credits <= 0) {
       this.elements.credits.style.color = "#e74c3c";
-    } else if (credits < 10) {
+    } else if (credits < 10000) {
       this.elements.credits.style.color = "#f39c12";
     } else {
       this.elements.credits.style.color = "#ffd700";
@@ -354,8 +355,8 @@ class GameController {
     this.updateUI();
     if (result.isWin) {
       const message = result.isJackpot
-        ? GameConfig.messages.jackpot.replace("{amount}", result.winnings)
-        : GameConfig.messages.win.replace("{amount}", result.winnings);
+        ? GameConfig.messages.jackpot.replace("${amount}", result.winnings)
+        : GameConfig.messages.win.replace("${amount}", result.winnings);
       this.ui.showMessage(message, "win");
       this.ui.showWinEffect();
     } else {
@@ -370,7 +371,7 @@ class GameController {
 
   handleBetChange(change) {
     if (this.engine.isSpinning) return;
-    const newBet = this.engine.currentBet + change;
+    const newBet = this.engine.currentBet + (change * 1000);
     if (this.engine.setBet(newBet)) {
       this.updateUI();
     }
