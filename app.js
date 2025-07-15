@@ -68,12 +68,13 @@ const GameConfig = {
    * Probabilidades base de aparición de cada símbolo
    * Suma total = 1.0 (100%)
    * Ordenadas de más común a más raro
+   * AUMENTADAS para mayor frecuencia de victorias
    */
   probabilities: {
-    "🍒": 0.40,  // 40% - Muy común
-    "🔔": 0.30,  // 30% - Común
-    "🍋": 0.20,  // 20% - Medio
-    "⭐": 0.08,  // 8% - Raro
+    "🍒": 0.45,  // 45% - Muy común (aumentado)
+    "🔔": 0.32,  // 32% - Común (aumentado)
+    "🍋": 0.15,  // 15% - Medio
+    "⭐": 0.06,  // 6% - Raro
     "💎": 0.02,  // 2% - Muy raro
   },
   
@@ -152,18 +153,19 @@ class SlotEngine {
     /** @type {number} Número de victorias consecutivas actuales */
     this.consecutiveWins = 0;
     
-    /** @type {number} Límite máximo de victorias consecutivas (4-5) */
-    this.maxConsecutiveWins = 4;
+    /** @type {number} Límite máximo de victorias consecutivas (5-7) */
+    this.maxConsecutiveWins = 5;
   }
 
   /**
    * Calcula las probabilidades dinámicas de aparición de símbolos
    * basadas en el estado actual del juego (saldo, victorias consecutivas).
    * 
-   * Implementa tres sistemas de balance:
+   * Implementa cuatro sistemas de balance:
    * 1. Protección de saldo bajo (< 40,000 pesos)
-   * 2. Control de victorias consecutivas (límite 4-5)
+   * 2. Control de victorias consecutivas (límite 5-7)
    * 3. Escalado de dificultad para saldos altos (> 97,000 pesos)
+   * 4. Bonificación de símbolos premium (saldo 47k-56k + apuesta baja)
    * 
    * @returns {Object} Objeto con probabilidades normalizadas por símbolo
    */
@@ -171,24 +173,39 @@ class SlotEngine {
     const base = { ...GameConfig.probabilities };
     let factor = 1;
 
+    // NUEVO SISTEMA: Bonificación de símbolos premium (💎⭐) en rango específico
+    if (this.credits >= 47000 && this.credits <= 56000 && this.currentBet <= 2000) {
+      // Aumentar exponencialmente las probabilidades de diamantes y estrellas
+      // CASI GARANTIZADO que salgan símbolos premium
+      const bonusMultiplier = this.currentBet === 1000 ? 15 : 12; // 15x para 1000, 12x para 2000
+      
+      return {
+        "🍒": 0.05,  // Muy reducido
+        "🔔": 0.05,  // Muy reducido
+        "🍋": 0.05,  // Muy reducido
+        "⭐": 0.45,  // CASI GARANTIZADO (de 0.06 a 0.45)
+        "💎": 0.40,  // CASI GARANTIZADO (de 0.02 a 0.40)
+      };
+    }
+
     // Menos de 40000 pesos: imposible perder (excepto si ya ha ganado demasiado seguido)
     if (this.credits < 40000 && this.consecutiveWins < this.maxConsecutiveWins) {
       return {
-        "🍒": 0.35,
-        "🔔": 0.30,
-        "🍋": 0.20,
-        "⭐": 0.10,
-        "💎": 0.05,
+        "🍒": 0.40,
+        "🔔": 0.35,
+        "🍋": 0.15,
+        "⭐": 0.08,
+        "💎": 0.02,
       };
     }
 
     // Control de victorias consecutivas: después de 4-5 victorias seguidas, forzar pérdida
     if (this.consecutiveWins >= this.maxConsecutiveWins) {
-      // Probabilidades muy bajas para ganar - casi garantizada pérdida
+      // Probabilidades reducidas pero no tan bajas para ganar ocasionalmente
       return {
-        "🍒": 0.12,
-        "🔔": 0.12,
-        "🍋": 0.12,
+        "🍒": 0.20,
+        "🔔": 0.18,
+        "🍋": 0.15,
         "⭐": 0.08,
         "💎": 0.04,
       };
@@ -197,12 +214,12 @@ class SlotEngine {
     // Transición amortiguada para saldos altos (> 97,000 pesos)
     if (this.credits > 97000) {
       // Disminuye gradualmente la probabilidad de ganar cuanto más alto es el saldo (>97,000)
-      // Factor va de 1 (en 97,000 pesos) a 0.3 (en 120,000+ pesos)
-      factor = 1 - ((this.credits - 97000) / 23000) * 0.7;
-      if (factor < 0.3) factor = 0.3; // Mínimo factor
+      // Factor va de 1 (en 97,000 pesos) a 0.5 (en 120,000+ pesos) - MENOS PENALIZACIÓN
+      factor = 1 - ((this.credits - 97000) / 23000) * 0.5;
+      if (factor < 0.5) factor = 0.5; // Mínimo factor aumentado
       for (let sym in base) base[sym] *= factor;
-      // Aumenta la probabilidad de perder (no todos iguales)
-      base["🍒"] += (1 - factor) * 0.25;
+      // Aumenta la probabilidad de perder (no todos iguales) - REDUCIDO
+      base["🍒"] += (1 - factor) * 0.15;
     }
     // Normalizar para que sumen 1
     const total = Object.values(base).reduce((a, b) => a + b, 0);
@@ -213,6 +230,7 @@ class SlotEngine {
   /**
    * Genera la combinación de símbolos para los carretes del juego.
    * Implementa lógica especial para diferentes estados del juego:
+   * - Bonificación de símbolos premium (rango 47k-56k + apuesta baja)
    * - Control de victorias consecutivas
    * - Protección de saldo bajo
    * - Generación normal basada en probabilidades
@@ -220,6 +238,34 @@ class SlotEngine {
    * @returns {string[]} Array de 3 símbolos para los carretes
    */
   spinReels() {
+    // NUEVO: Bonificación de símbolos premium para saldo 47k-56k + apuesta baja
+    if (this.credits >= 47000 && this.credits <= 56000 && this.currentBet <= 2000) {
+      const probs = this.getDynamicProbabilities();
+      const result = [];
+      
+      // FORZAR símbolos premium con probabilidad extremadamente alta
+      for (let i = 0; i < GameConfig.game.reels; i++) {
+        const random = Math.random();
+        
+        // 95% de probabilidad de que salga diamante o estrella
+        if (random < 0.95) {
+          // 50/50 entre diamante y estrella
+          result.push(random < 0.475 ? "💎" : "⭐");
+        } else {
+          // 5% para otros símbolos
+          let cumulative = 0;
+          for (const [symbol, prob] of Object.entries(probs)) {
+            cumulative += prob;
+            if (random <= cumulative) {
+              result.push(symbol);
+              break;
+            }
+          }
+        }
+      }
+      return result;
+    }
+
     // Control de victorias consecutivas: después de 4-5 victorias, forzar pérdida
     if (this.consecutiveWins >= this.maxConsecutiveWins) {
       // Generar combinación que garantice pérdida (símbolos diferentes)
@@ -371,13 +417,13 @@ class SlotEngine {
       this.totalWins++;
       this.consecutiveWins++; // Incrementar victorias consecutivas
       
-      // Variar el máximo de victorias consecutivas (4 o 5 aleatoriamente)
+      // Variar el máximo de victorias consecutivas (5 a 7 aleatoriamente)
       if (this.consecutiveWins === 1) {
-        this.maxConsecutiveWins = Math.random() < 0.5 ? 4 : 5;
+        this.maxConsecutiveWins = Math.random() < 0.5 ? 5 : (Math.random() < 0.5 ? 6 : 7);
       }
     } else {
       this.consecutiveWins = 0; // Resetear contador en caso de pérdida
-      this.maxConsecutiveWins = Math.random() < 0.5 ? 4 : 5; // Nuevo límite aleatorio
+      this.maxConsecutiveWins = Math.random() < 0.5 ? 5 : (Math.random() < 0.5 ? 6 : 7); // Nuevo límite aleatorio
     }
 
     // Verificar si se alcanzó el límite de créditos
@@ -616,11 +662,9 @@ class GameController {
   processSpinResult(result) {
     this.updateUI();
     
-    // Verificar si el juego se completó (llegó a 100k)
+    // Verificar si el juego se completó (llegó a 100k) - MODAL INMEDIATO
     if (result.gameComplete) {
-      setTimeout(() => {
-        this.ui.showGameCompleteModal();
-      }, 1000);
+      this.ui.showGameCompleteModal();
       return;
     }
 
