@@ -32,29 +32,30 @@ const GameConfig = {
   controlSettings: {
     minSpins: 4,
     maxSpins: 5,
-    targetFinalCredits: 40,
-    allowedRange: [15, 38],
+    targetFinalCredits: 40000,
+    allowedRange: [40000, 97000],
+    maxCredits: 100000,
     redirectDelay: 5000
   },
   game: {
-    initialCredits: 20,
-    minBet: 2,
-    maxBet: 5,
-    defaultBet: 2,
+    initialCredits: 50000,
+    minBet: 1000,
+    maxBet: 5000,
+    defaultBet: 2000,
     reels: 3,
     spinDuration: 2000,
   },
   messages: {
     welcome: "¡Buena suerte!",
-    win: "¡Ganaste {amount} créditos!",
+    win: "¡Ganaste ${amount} pesos!",
     lose: "¡Inténtalo de nuevo!",
-    jackpot: "¡JACKPOT! ¡Ganaste {amount} créditos!",
-    twoMatch: "¡Dos iguales! +{amount} créditos",
-    special: "¡Combinación especial! +{amount} créditos",
-    noCredits: "Te quedaste sin créditos.",
-    insufficientFunds: "Créditos insuficientes para esta apuesta",
+    jackpot: "¡JACKPOT! ¡Ganaste ${amount} pesos!",
+    twoMatch: "¡Dos iguales! +${amount} pesos",
+    special: "¡Combinación especial! +${amount} pesos",
+    noCredits: "Te quedaste sin pesos.",
+    insufficientFunds: "Pesos insuficientes para esta apuesta",
     spinsRemaining: "Tiradas restantes: {remaining}/{total}",
-    gameOver: "¡Juego terminado! Final: {credits} créditos",
+    gameOver: "¡Juego terminado! Final: ${credits} pesos",
     redirecting: "Redirigiendo al inicio en {seconds} segundos...",
     sessionEnded: "Sesión terminada. Has usado todas tus tiradas.",
   },
@@ -224,8 +225,8 @@ class SlotEngine {
     const base = { ...GameConfig.probabilities };
     let factor = 1;
 
-    // Menos de 5 créditos: imposible perder
-    if (this.credits < 5) {
+    // Menos de 30,000 pesos: mayor probabilidad de ganar
+    if (this.credits < 30000) {
       return {
         "🍒": 0.3,
         "🔔": 0.25,
@@ -235,16 +236,16 @@ class SlotEngine {
       };
     }
 
-    // Transición amortiguada entre 0–15 y 40–50
-    if (this.credits < 15) {
-      // Aumenta gradualmente la probabilidad de ganar cuanto más bajo es el saldo (<15)
-      // Factor va de 1.8 (en 0 $) a 1 (en 15 $)
-      factor = 1.8 - (this.credits / 15) * 0.8;
+    // Transición amortiguada entre 40,000–50,000 y 80,000–97,000
+    if (this.credits < 50000) {
+      // Aumenta gradualmente la probabilidad de ganar cuanto más bajo es el saldo (<50,000)
+      // Factor va de 1.8 (en 40,000) a 1 (en 50,000)
+      factor = 1.8 - ((this.credits - 40000) / 10000) * 0.8;
       for (let sym in base) base[sym] *= factor;
-    } else if (this.credits > 40) {
-      // Disminuye gradualmente la probabilidad de ganar cuanto más alto es el saldo (>40)
-      // Factor va de 1 (en 40 $) a 0.3 (en 50 $)
-      factor = 1 - ((this.credits - 40) / 10) * 0.7;
+    } else if (this.credits > 80000) {
+      // Disminuye gradualmente la probabilidad de ganar cuanto más alto es el saldo (>80,000)
+      // Factor va de 1 (en 80,000) a 0.3 (en 97,000)
+      factor = 1 - ((this.credits - 80000) / 17000) * 0.7;
       for (let sym in base) base[sym] *= factor;
       // Aumenta la probabilidad de perder (no todos iguales)
       base["🍒"] += (1 - factor) * 0.25;
@@ -342,6 +343,12 @@ class SlotEngine {
     
     if (winnings > 0) {
       this.credits += winnings;
+      
+      // Aplicar límite máximo de 100,000 pesos
+      if (this.credits > GameConfig.controlSettings.maxCredits) {
+        this.credits = GameConfig.controlSettings.maxCredits;
+      }
+      
       this.totalWins++;
     }
     
@@ -480,10 +487,10 @@ class SlotUI {
   }
 
   updateCredits(credits) {
-    this.elements.credits.textContent = credits;
+    this.elements.credits.textContent = credits.toLocaleString();
     if (credits <= 0) {
       this.elements.credits.style.color = "#e74c3c";
-    } else if (credits < 10) {
+    } else if (credits < 30000) {
       this.elements.credits.style.color = "#f39c12";
     } else {
       this.elements.credits.style.color = "#ffd700";
@@ -491,7 +498,7 @@ class SlotUI {
   }
 
   updateBet(bet) {
-    this.elements.bet.textContent = bet;
+    this.elements.bet.textContent = bet.toLocaleString();
   }
 
   updateReelSymbol(reelIndex, symbol) {
@@ -570,7 +577,7 @@ class SlotUI {
   }
 
   showGameOverModal(stats, onRedirect) {
-    this.elements.finalCredits.textContent = stats.credits;
+    this.elements.finalCredits.textContent = stats.credits.toLocaleString();
     this.elements.totalSpinsStat.textContent = stats.totalSpins;
     this.elements.totalWinsStat.textContent = stats.totalWins;
     
@@ -675,16 +682,16 @@ class GameController {
     
     if (result.isWin) {
       if (result.resultType === 'twoMatch') {
-        message = GameConfig.messages.twoMatch.replace("{amount}", result.winnings);
+        message = GameConfig.messages.twoMatch.replace("${amount}", result.winnings.toLocaleString());
         messageType = "win";
       } else if (result.resultType === 'special') {
-        message = GameConfig.messages.special.replace("{amount}", result.winnings);
+        message = GameConfig.messages.special.replace("${amount}", result.winnings.toLocaleString());
         messageType = "win";
       } else if (result.isJackpot) {
-        message = GameConfig.messages.jackpot.replace("{amount}", result.winnings);
+        message = GameConfig.messages.jackpot.replace("${amount}", result.winnings.toLocaleString());
         messageType = "win";
       } else {
-        message = GameConfig.messages.win.replace("{amount}", result.winnings);
+        message = GameConfig.messages.win.replace("${amount}", result.winnings.toLocaleString());
         messageType = "win";
       }
       this.ui.showWinEffect();
@@ -708,7 +715,7 @@ class GameController {
 
   handleBetChange(change) {
     if (this.engine.isSpinning) return;
-    const newBet = this.engine.currentBet + change;
+    const newBet = this.engine.currentBet + (change * 1000);
     if (this.engine.setBet(newBet)) {
       this.updateUI();
     }
@@ -716,7 +723,7 @@ class GameController {
 
   handleGameOver() {
     const stats = this.engine.getStats();
-    const finalMessage = GameConfig.messages.gameOver.replace("{credits}", stats.credits);
+    const finalMessage = GameConfig.messages.gameOver.replace("${credits}", stats.credits.toLocaleString());
     this.ui.showMessage(finalMessage, "win");
     
     // Mostrar modal después de un breve delay
