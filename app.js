@@ -4,18 +4,25 @@
 const GameConfig = {
   symbols: ["🍒", "🔔", "🍋", "⭐", "💎"],
   payouts: {
+    // Premios principales (tres iguales)
     "🍒": 2,
     "🔔": 3,
     "🍋": 4,
     "⭐": 7,
     "💎": 10,
+    // Premios intermedios (dos iguales)
+    "🍒🍒": 1.2,
+    "🔔🔔": 1.5,
+    "🍋🍋": 2,
+    "⭐⭐": 3,
+    "💎💎": 5,
   },
   probabilities: {
-    "🍒": 0.35,
-    "🔔": 0.25,
-    "🍋": 0.2,
-    "⭐": 0.15,
-    "💎": 0.05,
+    "🍒": 0.40,
+    "🔔": 0.30,
+    "🍋": 0.20,
+    "⭐": 0.08,
+    "💎": 0.02,
   },
   game: {
     initialCredits: 50000,
@@ -53,24 +60,19 @@ class SlotEngine {
     const base = { ...GameConfig.probabilities };
     let factor = 1;
 
-    // Menos de 5000 pesos: imposible perder
-    if (this.credits < 5000) {
+    // Menos de 40000 pesos: imposible perder
+    if (this.credits < 40000) {
       return {
-        "🍒": 0.3,
-        "🔔": 0.25,
-        "🍋": 0.2,
-        "⭐": 0.15,
-        "💎": 0.1,
+        "🍒": 0.35,
+        "🔔": 0.30,
+        "🍋": 0.20,
+        "⭐": 0.10,
+        "💎": 0.05,
       };
     }
 
-    // Transición amortiguada entre 40,000 y 97,000 pesos
-    if (this.credits < 40000) {
-      // Aumenta gradualmente la probabilidad de ganar cuanto más bajo es el saldo (<40,000)
-      // Factor va de 1.8 (en 0 pesos) a 1 (en 40,000 pesos)
-      factor = 1.8 - (this.credits / 40000) * 0.8;
-      for (let sym in base) base[sym] *= factor;
-    } else if (this.credits > 97000) {
+    // Transición amortiguada para saldos altos (> 97,000 pesos)
+    if (this.credits > 97000) {
       // Disminuye gradualmente la probabilidad de ganar cuanto más alto es el saldo (>97,000)
       // Factor va de 1 (en 97,000 pesos) a 0.3 (en 120,000+ pesos)
       factor = 1 - ((this.credits - 97000) / 23000) * 0.7;
@@ -85,9 +87,9 @@ class SlotEngine {
     return base;
   }
 
-  // Genera símbolos para cada carrete, con lógica especial para saldo < 5000
+  // Genera símbolos para cada carrete, con lógica especial para saldo < 40000
   spinReels() {
-    if (this.credits < 5000) {
+    if (this.credits < 40000) {
       // Forzar combinación ganadora (tres iguales)
       const probs = this.getDynamicProbabilities();
       const random = Math.random();
@@ -121,11 +123,44 @@ class SlotEngine {
 
   calculateWinnings(combination) {
     const firstSymbol = combination[0];
+    const secondSymbol = combination[1];
+    const thirdSymbol = combination[2];
+    
+    // Verificar tres iguales (premio principal)
     const allMatch = combination.every((symbol) => symbol === firstSymbol);
     if (allMatch) {
       const multiplier = GameConfig.payouts[firstSymbol];
       return this.currentBet * multiplier;
     }
+    
+    // Verificar dos iguales (premios intermedios)
+    let twoMatchSymbol = null;
+    let matchCount = 0;
+    
+    // Contar cuántas veces aparece cada símbolo
+    const symbolCount = {};
+    combination.forEach(symbol => {
+      symbolCount[symbol] = (symbolCount[symbol] || 0) + 1;
+    });
+    
+    // Buscar el símbolo que aparece al menos 2 veces
+    for (const [symbol, count] of Object.entries(symbolCount)) {
+      if (count >= 2) {
+        twoMatchSymbol = symbol;
+        matchCount = count;
+        break;
+      }
+    }
+    
+    // Si hay al menos dos iguales, dar premio intermedio
+    if (twoMatchSymbol && matchCount >= 2) {
+      const intermediateKey = twoMatchSymbol + twoMatchSymbol;
+      const multiplier = GameConfig.payouts[intermediateKey];
+      if (multiplier) {
+        return this.currentBet * multiplier;
+      }
+    }
+    
     return 0;
   }
 
@@ -220,7 +255,7 @@ class SlotUI {
     this.elements.credits.textContent = credits;
     if (credits <= 0) {
       this.elements.credits.style.color = "#e74c3c";
-    } else if (credits < 10000) {
+    } else if (credits < 40000) {
       this.elements.credits.style.color = "#f39c12";
     } else {
       this.elements.credits.style.color = "#ffd700";
