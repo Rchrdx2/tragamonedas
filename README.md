@@ -1,3 +1,10 @@
+# Descarga este proyecto
+```
+git clone -b alt https://github.com/Rchrdx2/tragamonedas
+```
+
+
+
 # 🎰 Tragamonedas - Juego de Casino
 
 Un juego de tragamonedas completamente funcional desarrollado en JavaScript ES6 con HTML5 y CSS3. El juego utiliza pesos colombianos como moneda y cuenta con un sistema avanzado de probabilidades dinámicas.
